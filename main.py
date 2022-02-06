@@ -11,23 +11,22 @@ VSYNC = 'On' if getConfig('VSYNC') else 'Off'
 ingameentities = {}
 
 def resumeM(currentities):
+    global ingameentities
     for i in currentities:
         destroy(currentities[i])
-    window.color = color.white
+    ingameentities.pop("resume")
+    ingameentities.pop("mainMenu")
     mouse.locked = True
-    
 
 def pauseMenu():
+    global ingameentities
     mouse.locked = False
-    mainMenu = Button(text = "Main Menu", scale = (.5, .10, .25), position = (0, 0, 0), color = color.red, texture = "assets/ChineseButtonTexture")  
+    mainMenuB = Button(text = "Main Menu", scale = (.5, .10, .25), position = (0, 0, 0), color = color.red, texture = "assets/ChineseButtonTexture")  
     resume = Button(text = "Resume", scale = (.5, .10, .25), position = (0, .10, 0), color = color.red, texture = "assets/ChineseButtonTexture")
-    mainMenu.on_mouse_enter, mainMenu.on_mouse_exit, resume.on_mouse_enter, resume.on_mouse_exit = Func(changeEntityColor, mainMenu, color.gray), Func(changeEntityColor, mainMenu, color.red), Func(changeEntityColor, resume, color.gray), Func(changeEntityColor, resume, color.red)
-    window.color = color.black
-    ingameentities = {
-        "mainMenu": mainMenu,
-        "resume": resume
-    }
-    resume.on_click = Func(resumeM, ingameentities)
+    mainMenuB.on_mouse_enter, mainMenuB.on_mouse_exit, resume.on_mouse_enter, resume.on_mouse_exit = Func(changeEntityColor, mainMenuB, color.gray), Func(changeEntityColor, mainMenuB, color.red), Func(changeEntityColor, resume, color.gray), Func(changeEntityColor, resume, color.red)
+    ingameentities |= {"resume": resume, "mainMenu": mainMenuB}
+    resume.on_click = Func(resumeM, {"mainMenu": mainMenuB, "resume": resume})
+    mainMenuB.on_click = Func(mainMenu, ingameentities)
     
 
 # Classes
@@ -43,11 +42,15 @@ class Player(FirstPersonController):
     def input(self, k):
         super().input(k)
         if k == "escape":
-            pauseMenu()
+            if "resume" in ingameentities:
+                resumeM({"mainMenu": ingameentities.get("mainMenu"), "resume": ingameentities.get("resume")})
+            else:
+                pauseMenu()
     
     def update(self):
         if mouse.locked: super().update()
         else: pass
+
 # Functions (Not built-in)
 changeEntityColor = lambda e, c: setattr(e, "color", c)
 
@@ -73,6 +76,7 @@ def mainGameplay(currentities):
     }
 
 def mainMenu(currentities):
+    global ingameentities
     for i in currentities:
         destroy(currentities[i])
     background = Entity(
@@ -106,6 +110,7 @@ def mainMenu(currentities):
     }
 
 def settingsScreen(currentities):
+    global ingameentities
     for i in currentities:
         if i == "background": continue
         destroy(currentities[i])
@@ -118,7 +123,7 @@ def settingsScreen(currentities):
         DropdownMenuButton("On", on_click = lambda: changeConfig("VSYNC", True)),
         DropdownMenuButton("Off", on_click = lambda: changeConfig("VSYNC", False))
     ))
-    sensitivity = Slider(50, 200, position = (-.1, .125, 0))
+    sensitivity = Slider(50, 300, position = (-.1, .125, 0))
     sensitivity.value = getConfig("SENSITIVITY")
     sensitivity.on_value_changed = lambda: changeConfig("SENSITIVITY", round(sensitivity.value, 2))
     vsynclabel = Text("Vsync: ", position = (-.25, .075, 0), color = color.black)
